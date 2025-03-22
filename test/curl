@@ -1,0 +1,34 @@
+#!/bin/bash
+
+[[ $# -ne 4 ]] && {
+    name=${0##*/}  # equivalent to $(basename $0)
+    cat <<EOF
+
+${name} - curl simulator for dlmgr test.
+
+Usage:
+    ${name} <bytes_per_sec> <secs> -o <output_file>
+
+EOF
+    exit 1
+}
+
+
+bytes_per_sec=$1
+secs=$2
+output_file=$4
+
+BYTES=$(
+    head -c $(( ${bytes_per_sec} / 2 )) /dev/urandom \
+    | xxd -p \
+    | tr -d '\n' \
+    | head -c $(( ${bytes_per_sec} -1 ))        # preserve 1 bytes for '\n'
+)
+rm -f ${output_file}
+sleep 0.2
+echo "content-length: $(( ${bytes_per_sec} * ${secs} ))" 1>&2
+
+for i in $(seq 1 ${secs}); do
+    echo "${BYTES}" >> ${output_file}           # ${BYTES} + '\n' is exactly ${bytes_per_sec} bytes
+    sleep 1
+done
